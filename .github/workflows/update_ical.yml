@@ -1,0 +1,45 @@
+name: Update filtered TRC iCal
+
+on:
+  schedule:
+    # Every day at 10:00 UTC (adjust if you want)
+    - cron: "0 10 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-ical:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run fetch_and_filter script
+        run: |
+          python src/fetch_and_filter.py
+
+      - name: Commit and push updated ICS (if changed)
+        run: |
+          if git diff --quiet trc_filtered.ics; then
+            echo "No changes in trc_filtered.ics; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add trc_filtered.ics
+          git commit -m "Update filtered TRC iCal"
+          git push
