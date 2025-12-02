@@ -1,6 +1,8 @@
 name: Update filtered TRC iCal
 
 on:
+  push:
+    branches: [ "main" ]
   schedule:
     # Every day at 10:00 UTC (adjust if you want)
     - cron: "0 10 * * *"
