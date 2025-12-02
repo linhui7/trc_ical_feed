@@ -1,12 +1,25 @@
 import requests
+from copy import deepcopy
 from icalendar import Calendar, Event
 
-# URLs for the 4 gym locations
-ICAL_URLS = [
-    "https://app.rockgympro.com/ical/public/0d6c7fa257084fd3b9628ca1759d88eb",
-    "https://app.rockgympro.com/ical/public/ff72f7c8859742ada90d47dfdf1bbb97",
-    "https://app.rockgympro.com/ical/public/7fa510dd88f746378b4e0d79da753e70",
-    "https://app.rockgympro.com/ical/public/8a61329b24414b9e9f5313d64661c0c8",
+# URLs for the 4 gym locations + their display names
+FEEDS = [
+    {
+        "url": "https://app.rockgympro.com/ical/public/0d6c7fa257084fd3b9628ca1759d88eb",
+        "prefix": "TRC Durham",
+    },
+    {
+        "url": "https://app.rockgympro.com/ical/public/ff72f7c8859742ada90d47dfdf1bbb97",
+        "prefix": "TRC Morrisville",
+    },
+    {
+        "url": "https://app.rockgympro.com/ical/public/7fa510dd88f746378b4e0d79da753e70",
+        "prefix": "TRC Raleigh",
+    },
+    {
+        "url": "https://app.rockgympro.com/ical/public/8a61329b24414b9e9f5313d64661c0c8",
+        "prefix": "TRC Salvage Yard",
+    },
 ]
 
 # Event titles we care about
@@ -28,7 +41,7 @@ def fetch_calendar(url: str) -> Calendar:
 def build_filtered_calendar() -> Calendar:
     """
     Fetch all source calendars, filter to target events,
-    and return a new merged Calendar object.
+    and return a new merged Calendar object with prefixed titles.
     """
     merged_cal = Calendar()
     merged_cal.add("prodid", "-//TRC Filtered Feed//lin-hui//EN")
@@ -38,9 +51,12 @@ def build_filtered_calendar() -> Calendar:
     total_events = 0
     kept_events = 0
 
-    for url in ICAL_URLS:
+    for feed in FEEDS:
+        url = feed["url"]
+        prefix = feed["prefix"]
+
         cal = fetch_calendar(url)
-        print(f"Fetched calendar from {url}")
+        print(f"Fetched calendar from {url} ({prefix})")
 
         for component in cal.walk():
             if component.name != "VEVENT":
@@ -50,7 +66,10 @@ def build_filtered_calendar() -> Calendar:
             summary = str(component.get("summary"))
 
             if summary in TARGET_TITLES:
-                merged_cal.add_component(component)
+                # Make a copy so we don't mutate the original event
+                new_event: Event = deepcopy(component)
+                new_event["summary"] = f"{prefix} - {summary}"
+                merged_cal.add_component(new_event)
                 kept_events += 1
 
     print(f"Total events seen across all feeds: {total_events}")
